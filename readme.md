@@ -1,6 +1,6 @@
 # Enshrouded Dedicated Server CPU Fix
 
-This project attempts to reduce the CPU burden of the dedicated server by add a tick rate.
+This project attempts to reduce the CPU burden of the dedicated server by adding a tick rate.
 
 # Usage
 

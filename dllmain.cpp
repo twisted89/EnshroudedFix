@@ -349,8 +349,11 @@ WaitForMultipleObjectsEx_Def fpWaitForMultipleObjectsEx = nullptr;
 typedef DWORD(WINAPI* WaitForSingleObjectEx_Def)(HANDLE hHandle, DWORD dwMilliseconds, BOOL bAlertable);
 WaitForSingleObjectEx_Def fpWaitForSingleObjectEx = nullptr;
 
+typedef DWORD(WINAPI* WaitForSingleObject_Def)(HANDLE hHandle, DWORD dwMilliseconds);
+WaitForSingleObject_Def fpWaitForSingleObject = nullptr;
 
-constexpr auto frameTime = std::chrono::duration<int64_t, std::ratio<1, 30>>(1);
+
+constexpr auto frameTime = std::chrono::duration<int64_t, std::ratio<1, 60>>(1);
 thread_local auto lastUpdate = std::chrono::high_resolution_clock::now();
 
 static DWORD WINAPI WaitForMultipleObjectsEx_hook(DWORD nCount, const HANDLE* lpHandles, BOOL bWaitAll, DWORD dwMilliseconds, BOOL bAlertable)
@@ -371,7 +374,12 @@ static DWORD WINAPI WaitForMultipleObjectsEx_hook(DWORD nCount, const HANDLE* lp
 
 static DWORD WINAPI WaitForSingleObjectEx_hook(HANDLE hHandle, DWORD dwMilliseconds, BOOL bAlertable)
 {
-	return fpWaitForSingleObjectEx(hHandle, dwMilliseconds == 0 ? 100 : dwMilliseconds, bAlertable);
+	return fpWaitForSingleObjectEx(hHandle, dwMilliseconds == 0 ? 1 : dwMilliseconds, bAlertable);
+}
+
+static DWORD WINAPI WaitForSingleObject_hook(HANDLE hHandle, DWORD dwMilliseconds)
+{
+	return fpWaitForSingleObject(hHandle, dwMilliseconds == 0 ? 1 : dwMilliseconds);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -401,6 +409,12 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		if (status != MH_OK)
 		{
 			printf("WaitForSingleObjectEx Hook failed: %s\n", MH_StatusToString(status));
+		}
+
+		status = MH_CreateHookApiEx(L"Kernel32.dll", "WaitForSingleObject", (LPVOID)&WaitForSingleObject_hook, &fpWaitForSingleObject);
+		if (status != MH_OK)
+		{
+			printf("WaitForSingleObject Hook failed: %s\n", MH_StatusToString(status));
 		}
 
 		status = MH_EnableHook(MH_ALL_HOOKS);
